@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D-Day</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+  font-family: 'Pretendard', sans-serif;
+  margin: 0;
+  background: #0f172a;
+  color: white;
+}
+
+.container {
+  max-width: 420px;
+  margin: auto;
+  padding: 20px;
+}
+
+/* 상단 */
+.header {
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.header span {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* 입력 */
+.card {
+  background: rgba(255,255,255,0.05);
+  padding: 15px;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+}
+
+input, button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  border-radius: 10px;
+  border: none;
+}
+
+input {
+  background: #1e293b;
+  color: white;
+}
+
+button {
+  background: #6366f1;
+  color: white;
+  font-weight: 600;
+}
+
+/* 검색 */
+.search {
+  margin-top: 15px;
+}
+
+/* 리스트 */
+.task {
+  margin-top: 15px;
+  padding: 15px;
+  border-radius: 15px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+}
+
+.task-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.task-date {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.progress {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.bar {
+  height: 100%;
+  border-radius: 10px;
+}
+
+.red { background: #ef4444; }
+.orange { background: #f59e0b; }
+.green { background: #10b981; }
+
+.actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.actions button {
+  width: 48%;
+  padding: 8px;
+  font-size: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>📅 D-Day</h1>
+    <span id="today"></span>
+  </div>
+
+  <div class="card">
+    <input type="text" id="title" placeholder="할 일">
+    <input type="date" id="date">
+    <button onclick="addTask()">추가</button>
+  </div>
+
+  <input class="search" type="text" placeholder="검색..." oninput="searchTask(this.value)">
+
+  <div id="list"></div>
+
+</div>
+
+<script>
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+let keyword = "";
+
+function save() {
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+function getDays(date) {
+  const today = new Date();
+  const due = new Date(date);
+  return Math.ceil((due - today) / (1000*60*60*24));
+}
+
+function getPercent(days) {
+  const total = 30;
+  let p = 100 - (days / total * 100);
+  if (p < 0) p = 0;
+  if (p > 100) p = 100;
+  return p;
+}
+
+function addTask() {
+  const title = document.getElementById("title").value;
+  const date = document.getElementById("date").value;
+
+  if (!title || !date) return alert("입력 ㄱ");
+
+  tasks.push({ title, date });
+  save();
+  render();
+}
+
+function removeTask(i) {
+  tasks.splice(i, 1);
+  save();
+  render();
+}
+
+function searchTask(val) {
+  keyword = val;
+  render();
+}
+
+function render() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  let filtered = tasks.filter(t => t.title.includes(keyword));
+
+  filtered.sort((a,b)=>getDays(a.date)-getDays(b.date));
+
+  filtered.forEach((t,i)=>{
+    const days = getDays(t.date);
+    const percent = getPercent(days);
+
+    let color = "green";
+    if (days <= 3) color = "red";
+    else if (days <= 7) color = "orange";
+
+    const div = document.createElement("div");
+    div.className = "task";
+
+    div.innerHTML = `
+      <div class="task-title">${t.title}</div>
+      <div class="task-date">${days <= 0 ? "🔥 D-day" : "D-"+days}</div>
+
+      <div class="progress">
+        <div class="bar ${color}" style="width:${percent}%"></div>
+      </div>
+
+      <div class="actions">
+        <button onclick="removeTask(${i})">삭제</button>
+      </div>
+    `;
+
+    list.appendChild(div);
+  });
+
+  document.getElementById("today").innerText =
+    new Date().toLocaleDateString("ko-KR") + " / 총 " + tasks.length + "개";
+}
+
+render();
+</script>
+
+</body>
+</html>
